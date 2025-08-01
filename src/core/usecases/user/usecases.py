@@ -1,7 +1,8 @@
 from typing import List, Optional
 
-from core.dtos.user.user_dtos import CreateUserDto
+from core.dtos.user.user_dtos import CreateRequestUserDto
 from core.entities.user import User
+from infraestructure.utils.generate_slug import generate_slug
 from interface.auth.auth_interface import AuthInterface
 from interface.user.user_interface import UserInterface
 
@@ -11,29 +12,15 @@ class CreateUserUseCase:
         self.user_interface = user_interface
         self.auth_interface = auth_interface
 
-    def execute(self, user_data: CreateUserDto) -> User:
+    def execute(self, user_data: CreateRequestUserDto) -> User:
         # Mapear os campos do DTO para os aliases da entidade User
         user_dict = user_data.model_dump()
 
-        user_id = user_dict.get("user_id")
-        email = user_dict.get("email")
-
-        if not user_id or not email:
-            raise ValueError("user_id and email are required")
-
-        full_name = (
-            f"{user_dict.get('first_name', '')} {user_dict.get('last_name', '')}".strip()
-            or None
-        )
-
         user = User(
-            userId=user_id,
-            email=email,
-            name=full_name,
-            isActive=True,
-            org="default_org",  # Definir uma organização padrão ou pegar de algum lugar
-            slug=None,
-            avatarUrl=None,
+            **user_dict,
+            slug=generate_slug(
+                user_data.first_name if user_data.first_name else user_data.email
+            ),
         )
         self.user_interface.create_user(user)
         self.auth_interface.signup(user_data.email, user_data.password)

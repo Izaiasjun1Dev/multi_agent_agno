@@ -3,7 +3,28 @@
 # Variáveis
 PYTHON = .venv/bin/python
 PIP = .venv/bin/pip
-PYTEST = $(PYTHON) -m pytest
+PYTHONPATH = src
+
+# Comandos de help
+.PHONY: help
+help:
+	@echo "Comandos disponíveis:"
+	@echo "  install       - Instala dependências básicas"
+	@echo "  install-dev   - Instala dependências de desenvolvimento"
+	@echo "  test          - Executa todos os testes"
+	@echo "  test-coverage - Executa testes com relatório de cobertura"
+	@echo "  test-unit     - Executa apenas testes unitários"
+	@echo "  test-usecases - Executa testes de casos de uso"
+	@echo "  test-entities - Executa testes de entidades"
+	@echo "  test-exceptions - Executa testes de exceções"
+	@echo "  run           - Executa a aplicação"
+	@echo "  run-dev       - Executa a aplicação em modo desenvolvimento"
+	@echo "  run-prod      - Executa a aplicação em modo produção"
+	@echo "  lint          - Executa linting do código"
+	@echo "  format        - Formata o código"
+	@echo "  clean         - Remove arquivos temporários"
+	@echo "  clean-all     - Remove tudo incluindo venv"
+	@echo "  help          - Mostra esta ajuda" = $(PYTHON) -m pytest
 
 # Comandos de configuração
 .PHONY: install
@@ -52,6 +73,21 @@ lint:
 format:
 	$(PYTHON) -m black src/ tests/
 	$(PYTHON) -m isort src/ tests/
+
+# Comandos de execução da aplicação
+.PHONY: run run-dev run-prod
+run: run-dev
+
+run-dev:
+	@echo "🚀 Iniciando Inner API em modo desenvolvimento..."
+	@echo "📍 URL: http://localhost:8000"
+	@echo "📚 Documentação: http://localhost:8000/docs"
+	@echo ""
+	PYTHONPATH=$(PYTHONPATH) $(PYTHON) src/application/main.py
+
+run-prod:
+	@echo "🚀 Iniciando Inner API em modo produção..."
+	PYTHONPATH=$(PYTHONPATH) $(PYTHON) -m uvicorn presentation.app:app --host 0.0.0.0 --port 8000
 
 # Comandos de limpeza
 .PHONY: clean

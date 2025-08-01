@@ -1,18 +1,19 @@
-import pytest
-from unittest.mock import Mock, MagicMock
 from datetime import datetime
+from unittest.mock import MagicMock, Mock
 
+import pytest
+
+from core.dtos.user.user_dtos import CreateRequestUserDto
 from core.entities.user import User
-from core.dtos.user.user_dtos import CreateUserDto
 from core.usecases.user.usecases import (
     CreateUserUseCase,
+    DeleteUserUseCase,
     GetUserUseCase,
     ListUsersUseCase,
     UpdateUserUseCase,
-    DeleteUserUseCase,
 )
-from interface.user.user_interface import UserInterface
 from interface.auth.auth_interface import AuthInterface
+from interface.user.user_interface import UserInterface
 
 
 class TestCreateUserUseCase:
@@ -32,7 +33,7 @@ class TestCreateUserUseCase:
 
     @pytest.fixture
     def create_user_dto(self):
-        return CreateUserDto(
+        return CreateRequestUserDto(
             email="test@example.com",
             password="secure_password",
             first_name="Test",
