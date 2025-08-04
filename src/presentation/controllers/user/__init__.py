@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 from typing import Any, Dict
 
-from core.dtos.user.user_dtos import CreateRequestUserDto, ReponseUserDto
+from core.dtos.user.user_dtos import CreateRequestUserDto
 
 
 class UserControllerInterface(ABC):
@@ -15,11 +15,6 @@ class UserControllerInterface(ABC):
     @abstractmethod
     async def get_user(self, user_id: str) -> Dict[str, Any]:
         """Obtém um usuário por ID"""
-        pass
-
-    @abstractmethod
-    async def list_users(self) -> Dict[str, Any]:
-        """Lista todos os usuários"""
         pass
 
     @abstractmethod

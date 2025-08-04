@@ -15,7 +15,6 @@ class TestUser:
         user = User(
             userId="user_123",
             email="test@example.com",
-            name=None,
             org="org_123",
             isActive=True,
             slug="test-user",
@@ -36,33 +35,33 @@ class TestUser:
         user = User(
             userId="user_123",
             email="test@example.com",
-            name="Test User",
+            firstName="Test",
+            lastName="User",
             org="org_123",
             isActive=True,
             slug="test-user",
             avatarUrl="https://example.com/avatar.jpg",
-            roles=["admin", "user"],
         )
 
         assert user.name == "Test User"
+        assert user.first_name == "Test"
+        assert user.last_name == "User"
         assert user.avatar_url == "https://example.com/avatar.jpg"
-        assert user.roles == ["admin", "user"]
 
     def test_user_default_values(self):
         """Testa valores padrão do usuário"""
         user = User(
             userId="user_123",
             email="test@example.com",
-            name=None,
             org="org_123",
             isActive=True,
             slug="test-user",
             avatarUrl=None,
         )
 
-        assert user.roles == []
-        assert user.chats == []
+        assert user.chats is None
         assert user.is_active is True
+        assert user.name is None
 
     def test_user_validation(self):
         """Testa validação de email"""
@@ -70,7 +69,6 @@ class TestUser:
             User(
                 userId="user_123",
                 email="invalid-email",
-                name=None,
                 org="org_123",
                 isActive=True,
                 slug="test-user",

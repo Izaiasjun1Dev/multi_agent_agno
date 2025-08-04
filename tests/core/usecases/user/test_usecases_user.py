@@ -21,7 +21,20 @@ class TestCreateUserUseCase:
 
     @pytest.fixture
     def user_interface_mock(self):
-        return Mock(spec=UserInterface)
+        mock = Mock(spec=UserInterface)
+        # Configurar o mock para retornar um User quando create_user for chamado
+        mock.create_user.return_value = User(
+            userId="123",
+            email="test@example.com",
+            firstName="Test",
+            lastName="User",
+            slug="test-user",
+            isActive=True,
+            org=None,
+            chats=None,
+            avatarUrl=None,
+        )
+        return mock
 
     @pytest.fixture
     def auth_interface_mock(self):
@@ -56,7 +69,10 @@ class TestCreateUserUseCase:
 
         user_interface_mock.create_user.assert_called_once()
         auth_interface_mock.signup.assert_called_once_with(
-            create_user_dto.email, create_user_dto.password
+            create_user_dto.email,
+            create_user_dto.password,
+            create_user_dto.first_name,
+            create_user_dto.last_name,
         )
 
     def test_execute_calls_interfaces_in_correct_order(
@@ -72,6 +88,37 @@ class TestCreateUserUseCase:
         # Assert
         assert user_interface_mock.create_user.called
         assert auth_interface_mock.signup.called
+
+    def test_execute_rollback_when_signup_fails(
+        self,
+        create_user_use_case,
+        create_user_dto,
+        user_interface_mock,
+        auth_interface_mock,
+    ):
+        """Testa se uma exceção adequada é lançada quando o signup falha"""
+        from core.exceptions import InfrastructureException
+
+        # Arrange - Configurar o auth_interface para falhar no signup
+        auth_interface_mock.signup.side_effect = Exception("Signup failed")
+
+        # Act & Assert
+        with pytest.raises(InfrastructureException) as exc_info:
+            create_user_use_case.execute(create_user_dto)
+
+        # Verificar se tentou fazer signup
+        auth_interface_mock.signup.assert_called_once_with(
+            create_user_dto.email,
+            create_user_dto.password,
+            create_user_dto.first_name,
+            create_user_dto.last_name,
+        )
+
+        # Verificar que NÃO tentou criar o usuário no banco (falha rápida)
+        user_interface_mock.create_user.assert_not_called()
+
+        # Verificar detalhes da exceção
+        assert "Erro inesperado ao criar usuário" in str(exc_info.value)
 
 
 class TestGetUserUseCase:
@@ -90,10 +137,12 @@ class TestGetUserUseCase:
         return User(
             userId="user_123",
             email="test@example.com",
-            name="Test User",
+            firstName="Test",
+            lastName="User",
             org="org_123",
             isActive=True,
             slug="test-user",
+            chats=None,
             avatarUrl=None,
         )
 
@@ -135,40 +184,39 @@ class TestListUsersUseCase:
     def list_users_use_case(self, user_interface_mock):
         return ListUsersUseCase(user_interface_mock)
 
-    @pytest.fixture
-    def sample_users(self):
-        return [
+    def test_execute_returns_all_users(self, list_users_use_case, user_interface_mock):
+        # Arrange
+        expected_users = [
             User(
                 userId="user_1",
                 email="user1@example.com",
-                name="User 1",
+                firstName="User",
+                lastName="One",
                 org="org_123",
                 isActive=True,
                 slug="user-1",
+                chats=None,
                 avatarUrl=None,
             ),
             User(
                 userId="user_2",
                 email="user2@example.com",
-                name="User 2",
+                firstName="User",
+                lastName="Two",
                 org="org_123",
                 isActive=True,
                 slug="user-2",
+                chats=None,
                 avatarUrl=None,
             ),
         ]
-
-    def test_execute_returns_all_users(
-        self, list_users_use_case, user_interface_mock, sample_users
-    ):
-        # Arrange
-        user_interface_mock.list_users.return_value = sample_users
+        user_interface_mock.list_users.return_value = expected_users
 
         # Act
         result = list_users_use_case.execute()
 
         # Assert
-        assert result == sample_users
+        assert result == expected_users
         assert len(result) == 2
         user_interface_mock.list_users.assert_called_once()
 
@@ -202,10 +250,12 @@ class TestUpdateUserUseCase:
         return User(
             userId="user_123",
             email="test@example.com",
-            name="Test User",
+            firstName="Test",
+            lastName="User",
             org="org_123",
             isActive=True,
             slug="test-user",
+            chats=None,
             avatarUrl=None,
         )
 
@@ -214,7 +264,7 @@ class TestUpdateUserUseCase:
     ):
         # Arrange
         user_interface_mock.get_user.return_value = sample_user
-        update_data = {"name": "Updated Name"}
+        update_data = {"first_name": "Updated", "last_name": "Name"}
 
         # Act
         result = update_user_use_case.execute("user_123", update_data)

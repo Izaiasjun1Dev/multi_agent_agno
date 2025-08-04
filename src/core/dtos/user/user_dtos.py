@@ -9,10 +9,10 @@ class CreateRequestUserDto(BaseModel):
         populate_by_name=True,
         json_schema_extra={
             "example": {
-                "email": "user@example.com",
-                "password": "senha123",
-                "first_name": "João",
-                "last_name": "Silva",
+                "email": "izaias.junior@inner.com",
+                "password": "1213@Cronicas",
+                "first_name": "Izaias",
+                "last_name": "Henrique",
             }
         },
     )
@@ -31,10 +31,10 @@ class ReponseUserDto(BaseModel):
         populate_by_name=True,
         json_schema_extra={
             "example": {
-                "id": "123e4567-e89b-12d3-a456-426614174000",
-                "email": "user@example.com",
-                "first_name": "João",
-                "last_name": "Silva",
+                "User_id": "123e4567-e89b-12d3-a456-426614174000",
+                "email": "izaias.junior@inner.com",
+                "first_name": "Izaias",
+                "last_name": "Henrique",
             }
         },
     )

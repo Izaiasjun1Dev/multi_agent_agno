@@ -1,15 +1,19 @@
 from functools import lru_cache
 from typing import Any, Dict, List
 
+from core.usecases.auth.auth_usecases import ConfirmUserUseCase
 from core.usecases.user.usecases import (
     CreateUserUseCase,
     GetUserUseCase,
     ListUsersUseCase,
+    LoginUserUseCase,
     UpdateUserUseCase,
 )
+from infraestructure.repositories.auth.repository import AuthRepository
 from infraestructure.repositories.user.repository import UserRepository
 from interface.auth.auth_interface import AuthInterface
 from interface.user.user_interface import UserInterface
+from presentation.controllers.auth.auth_controller import AuthController
 from presentation.controllers.user.user_controller import UserController
 from presentation.presenters.user.user_presenter import UserPresenter
 
@@ -21,9 +25,6 @@ class MockAuthInterface(AuthInterface):
 
     def logout(self, token: str) -> bool:
         return True
-
-    def register(self, username: str, password: str) -> Dict[str, Any]:
-        return {"user_id": "mock_user_id", "username": username}
 
     def signup(self, username: str, password: str) -> Dict[str, Any]:
         return {"user_id": "mock_user_id", "username": username}
@@ -47,7 +48,7 @@ class MockAuthInterface(AuthInterface):
 @lru_cache()
 def get_auth_interface() -> AuthInterface:
     """Factory para a interface de autenticação"""
-    return MockAuthInterface()
+    return AuthRepository()
 
 
 @lru_cache()
@@ -97,7 +98,17 @@ def get_user_controller() -> UserController:
     return UserController(
         create_user_usecase=get_create_user_usecase(),
         get_user_usecase=get_get_user_usecase(),
-        list_users_usecase=get_list_users_usecase(),
         update_user_usecase=get_update_user_usecase(),
+        presenter=get_user_presenter(),
+    )
+
+
+@lru_cache()
+def get_auth_controller() -> AuthController:
+    """Factory para o controller de autenticação"""
+    login_usecase = LoginUserUseCase(get_auth_interface())
+    return AuthController(
+        login_usecase=login_usecase,
+        confirm_usecase=ConfirmUserUseCase(get_user_repository(), get_auth_interface()),
         presenter=get_user_presenter(),
     )

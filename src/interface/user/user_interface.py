@@ -21,7 +21,16 @@ class UserInterface(ABC):
         """
         
         pass
-    
+
+    @abstractmethod
+    def get_user_by_email(self, email: str) -> User:
+        """
+        Retrieve a user by their email.
+        :param email: The email of the user to retrieve.
+        :return: The User object if found, otherwise None.
+        """
+        pass
+
     @abstractmethod
     def update_user(self, user: User) -> User:
         """

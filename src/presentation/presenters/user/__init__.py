@@ -8,6 +8,20 @@ class UserPresenterInterface(ABC):
     """Interface para o presenter de usuário seguindo Clean Architecture"""
 
     @abstractmethod
+    def present_user_authentication(
+        self, auth_details: Dict[str, Any]
+    ) -> Dict[str, Any]:
+        """Apresenta os detalhes de autenticação do usuário"""
+        pass
+
+    @abstractmethod
+    def present_email_confirmation(
+        self, confirmation_status: Dict[str, Any]
+    ) -> Dict[str, Any]:
+        """Apresenta o status de confirmação do email do usuário"""
+        pass
+
+    @abstractmethod
     def present_user_created(self, user: User) -> Dict[str, Any]:
         """Apresenta o resultado da criação de usuário"""
         pass

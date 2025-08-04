@@ -3,6 +3,7 @@ Sistema de exceções da aplicação.
 Application exception system.
 """
 
+# Base exceptions
 from .base_exceptions import (
     BaseApplicationException,
     BusinessRuleException,
@@ -12,7 +13,33 @@ from .base_exceptions import (
     UnauthorizedException,
     ValidationException,
 )
-from .user import (
+
+# Infrastructure exceptions
+from .infrastructure_exceptions import (
+    CacheException,
+    ConnectionException,
+    DatabaseException,
+    ExternalServiceException,
+    FileSystemException,
+    InfrastructureException,
+    MessageQueueException,
+    TimeoutException,
+)
+
+# Request exceptions
+from .request_exceptions import (
+    BadRequestException,
+    FeatureNotAvailableException,
+    MethodNotAllowedException,
+    PayloadTooLargeException,
+    RateLimitException,
+    RequestException,
+    ResourceLockedException,
+    ServiceUnavailableException,
+)
+
+# User exceptions
+from .user.exceptions import (
     UserAccountLockedException,
     UserAlreadyExistsException,
     UserBusinessRuleException,
@@ -35,28 +62,46 @@ from .user import (
 __all__ = [
     # Base exceptions
     "BaseApplicationException",
-    "ValidationException",
     "BusinessRuleException",
-    "NotFoundException",
     "ConflictException",
-    "UnauthorizedException",
     "ForbiddenException",
+    "NotFoundException",
+    "UnauthorizedException",
+    "ValidationException",
+    # Infrastructure exceptions
+    "CacheException",
+    "ConnectionException",
+    "DatabaseException",
+    "ExternalServiceException",
+    "FileSystemException",
+    "InfrastructureException",
+    "MessageQueueException",
+    "TimeoutException",
+    # Request exceptions
+    "BadRequestException",
+    "FeatureNotAvailableException",
+    "MethodNotAllowedException",
+    "PayloadTooLargeException",
+    "RateLimitException",
+    "RequestException",
+    "ResourceLockedException",
+    "ServiceUnavailableException",
     # User exceptions
     "UserValidationException",
-    "UserBusinessRuleException",
     "UserEmailValidationException",
     "UserPasswordValidationException",
     "UserNameValidationException",
+    "UserBusinessRuleException",
     "UserAlreadyExistsException",
     "UserNotFoundException",
     "UserInactiveException",
+    "UserUnauthorizedException",
+    "UserForbiddenException",
     "UserPasswordMismatchException",
     "UserAccountLockedException",
+    "UserTokenExpiredException",
+    "UserTokenInvalidException",
     "UserProfileIncompleteException",
     "UserOrgMismatchException",
     "UserSlugConflictException",
-    "UserUnauthorizedException",
-    "UserForbiddenException",
-    "UserTokenExpiredException",
-    "UserTokenInvalidException",
 ]

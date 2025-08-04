@@ -60,6 +60,33 @@ class UserRepository(UserInterface):
             logger.error(f"Failed to initialize UserRepository: {str(e)}")
             raise
 
+    def _serialize_user_data(self, user: User) -> dict:
+        """
+        Serializa os dados do usuário para o formato aceito pelo DynamoDB.
+        Serializes user data to DynamoDB-compatible format.
+
+        Args:
+            user: User entity
+
+        Returns:
+            dict: Serialized user data
+        """
+        user_data = user.model_dump(by_alias=True)
+
+        # Converter datetime objects para strings ISO
+        for field in ["createdAt", "updatedAt"]:
+            if field in user_data and isinstance(user_data[field], datetime):
+                user_data[field] = user_data[field].isoformat()
+
+        # Garantir que campos datetime existam
+        if "createdAt" not in user_data or user_data["createdAt"] is None:
+            user_data["createdAt"] = datetime.now().isoformat()
+
+        if "updatedAt" not in user_data or user_data["updatedAt"] is None:
+            user_data["updatedAt"] = datetime.now().isoformat()
+
+        return user_data
+
     def create_user(self, user: User) -> User:
         """
         Cria um novo usuário no banco de dados.
@@ -77,16 +104,12 @@ class UserRepository(UserInterface):
         """
         try:
             # Verificar se o usuário já existe pelo email
-            existing_user = self._get_user_by_email(user.email)
+            existing_user = self.get_user_by_email(user.email)
             if existing_user:
                 raise UserAlreadyExistsException(email=user.email)
 
             # Preparar dados para salvar no DynamoDB
-            user_data = user.model_dump(by_alias=True)
-            user_data["createdAt"] = user_data.get(
-                "createdAt", datetime.now().isoformat()
-            )
-            user_data["updatedAt"] = datetime.now().isoformat()
+            user_data = self._serialize_user_data(user)
 
             # Salvar no DynamoDB
             self.table.put_item(Item=user_data)
@@ -223,13 +246,9 @@ class UserRepository(UserInterface):
             # Verificar se o usuário existe
             existing_user = self.get_user(user.user_id)
 
-            # Verificar se pertence à mesma organização
-            if existing_user.org_id != user.org_id:
-                raise UserOrgMismatchException(user_id=user.user_id, org_id=user.org_id)
 
             # Preparar dados para atualizar
-            user_data = user.model_dump(by_alias=True)
-            user_data["updatedAt"] = datetime.now().isoformat()
+            user_data = self._serialize_user_data(user)
 
             # Construir expressões de atualização
             update_expression_parts = []
@@ -519,7 +538,7 @@ class UserRepository(UserInterface):
                 status_code=500,
             )
 
-    def _get_user_by_email(self, email: str) -> Optional[User]:
+    def get_user_by_email(self, email: str) -> Optional[User]:
         """
         Busca usuário por email.
         Searches user by email.

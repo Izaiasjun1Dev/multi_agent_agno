@@ -46,3 +46,13 @@ class AWSClientFactory:
         """
         session = self._create_session()
         return session.client("s3")
+    
+    def cognito(self):
+        """
+        Create a Boto3 Cognito client.
+        
+        :param kwargs: Additional keyword arguments to pass to the client.
+        :return: A Boto3 Cognito client.
+        """
+        session = self._create_session()
+        return session.client("cognito-idp")
