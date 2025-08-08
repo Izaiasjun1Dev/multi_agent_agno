@@ -1,6 +1,6 @@
 from fastapi import APIRouter
 
-from presentation.routes.v1.router import api_v1_router
+from presentation.routes.v1.route import api_v1_router
 
 # Router principal da aplicação
 app_router = APIRouter(prefix="/api")

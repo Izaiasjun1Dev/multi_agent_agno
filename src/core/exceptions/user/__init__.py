@@ -12,7 +12,6 @@ from .exceptions import (  # Base exceptions; Validation exceptions; Business ru
     UserInactiveException,
     UserNameValidationException,
     UserNotFoundException,
-    UserOrgMismatchException,
     UserPasswordMismatchException,
     UserPasswordValidationException,
     UserProfileIncompleteException,
@@ -38,7 +37,6 @@ __all__ = [
     "UserPasswordMismatchException",
     "UserAccountLockedException",
     "UserProfileIncompleteException",
-    "UserOrgMismatchException",
     "UserSlugConflictException",
     # Authorization exceptions
     "UserUnauthorizedException",

@@ -50,12 +50,6 @@ class User(BaseModel):
         description="Indicates if the user is active",
         alias="isActive",
     )
-    org_id: Optional[str] = Field(
-        None,
-        title="Organization",
-        description="Organization to which the user belongs",
-        alias="org",
-    )
     chats: Optional[List[Chat]] = Field(
         default=None,
         title="Chats",

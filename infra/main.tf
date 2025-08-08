@@ -96,3 +96,60 @@ module "dynamodb_users" {
   )
 }
 
+
+module "dynamodb_chats" {
+  source = "./modules/dynamodb"
+  table_name  = "${var.prefix}-${var.environment}-chats"
+  environment = var.environment
+  hash_key    = "chatId"
+
+  attributes = [
+    {
+      name = "chatId"
+      type = "S"
+    },
+    {
+      name = "userId"
+      type = "S"
+    },
+  ]
+
+  global_secondary_indexes = [
+    {
+      name            = "userId-index"
+      hash_key        = "userId"
+      range_key       = null
+      projection_type = "ALL"
+    },
+    {
+      name            = "chatId-index"
+      hash_key        = "chatId"
+      range_key       = null
+      projection_type = "ALL"
+    }
+  ]
+
+  # Configurações usando variáveis
+  billing_mode                   = var.dynamodb_billing_mode
+  point_in_time_recovery_enabled = var.dynamodb_point_in_time_recovery_enabled
+  encryption_enabled             = var.dynamodb_encryption_enabled
+  stream_enabled                 = var.dynamodb_stream_enabled
+  stream_view_type               = var.dynamodb_stream_view_type
+  ttl_enabled                    = var.dynamodb_ttl_enabled
+  autoscaling_enabled            = var.dynamodb_autoscaling_enabled
+  read_capacity                  = var.dynamodb_read_capacity
+  write_capacity                 = var.dynamodb_write_capacity
+  autoscaling_read_max_capacity  = var.dynamodb_autoscaling_read_max_capacity
+  autoscaling_write_max_capacity = var.dynamodb_autoscaling_write_max_capacity
+  autoscaling_read_target_value  = var.dynamodb_autoscaling_read_target_value
+  autoscaling_write_target_value = var.dynamodb_autoscaling_write_target_value
+
+  additional_tags = merge(
+    var.dynamodb_additional_tags,
+    {
+      Service = var.prefix
+      Purpose = "chats-management"
+    }
+  )
+}
+

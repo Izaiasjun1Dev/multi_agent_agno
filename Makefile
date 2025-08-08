@@ -54,6 +54,24 @@ format:
 	$(PYTHON) -m black src/ tests/
 	$(PYTHON) -m isort src/ tests/
 
+# Comandos de migração do banco de dados
+.PHONY: migrate-create migrate-upgrade migrate-status migrate-agent
+migrate-create:
+	@echo "🔄 Criando nova migração..."
+	PYTHONPATH=$(PYTHONPATH) $(PYTHON) -m alembic -c alembic.ini revision --autogenerate -m "$(MESSAGE)"
+	@echo "✅ Migração criada com sucesso!"
+
+migrate-upgrade:
+	@echo "🔄 Aplicando migrações pendentes..."
+	PYTHONPATH=$(PYTHONPATH) $(PYTHON) -m alembic -c alembic.ini upgrade head
+	@echo "✅ Migrações aplicadas com sucesso!"
+
+migrate-status:
+	@echo "📊 Status das migrações:"
+	PYTHONPATH=$(PYTHONPATH) $(PYTHON) -m alembic -c alembic.ini current
+	PYTHONPATH=$(PYTHONPATH) $(PYTHON) -m alembic -c alembic.ini history
+
+
 # Comandos de execução da aplicação
 .PHONY: run run-dev run-prod
 run: run-dev
@@ -90,6 +108,29 @@ delete-users:
 delete-users-dry-run:
 	@./scripts/delete_all_users.py --user-pool-id us-east-1_JIEznH51N --dry-run
 
+
+.PHONY: infra-apply
+infra-apply:
+	@echo "🚀 Aplicando infraestrutura..."
+	@cd infra && clear && terraform init && terraform apply -var-file=tfvars/dev.tfvars -auto-approve -parallelism=10
+	@echo "✅ Infraestrutura aplicada com sucesso!"
+	@cd ..
+
+.PHONY: run-environment
+run-environment:
+	@echo "🚀 Iniciando Inner API em modo desenvolvimento..."
+	@docker compose -f docker/docker-compose.yaml up -d
+	@clear && PYTHONPATH=$(PYTHONPATH) $(PYTHON) -m presentation.playground &
+	@cd agent-ui && npm run dev
+	@echo "📍 URL: http://localhost:3000"
+
+.PHONY: run-playground
+run-playground:
+	@echo "🚀 Iniciando Playground..."
+	@clear && PYTHONPATH=$(PYTHONPATH) $(PYTHON) -m presentation.playground &
+	@cd agent-ui && npm run dev
+	@echo "📍 URL: http://localhost:3000"
+
 # Comandos de help
 .PHONY: help
 help:
@@ -103,6 +144,9 @@ help:
 	@echo "  test-entities - Executa testes de entidades"
 	@echo "  test-exceptions - Executa testes de exceções"
 	@echo "  test-watch    - Executa testes em modo watch"
+	@echo "  migrate-create MESSAGE='msg' - Cria nova migração com mensagem"
+	@echo "  migrate-upgrade - Aplica migrações pendentes"
+	@echo "  migrate-status - Mostra status das migrações"
 	@echo "  run           - Executa a aplicação"
 	@echo "  run-dev       - Executa a aplicação em modo desenvolvimento"
 	@echo "  run-prod      - Executa a aplicação em modo produção"
@@ -112,6 +156,9 @@ help:
 	@echo "  clean-all     - Remove tudo incluindo venv"
 	@echo "  delete-users  - Deleta todos os usuários do Cognito"
 	@echo "  delete-users-dry-run - Simula a deleção de usuários do Cognito"
+	@echo "  infra-apply   - Aplica a infraestrutura com Terraform"
+	@echo "  run-environment - Inicia o ambiente de desenvolvimento com Docker"
+	@echo "  run-playground - Inicia o playground da aplicação"
 	@echo "  help          - Mostra esta ajuda"
 
 # Default

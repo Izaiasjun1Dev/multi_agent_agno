@@ -1,7 +1,15 @@
 from functools import lru_cache
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 
+from fastapi import Depends, HTTPException, status
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
+
+from core.usecases.agent.agent_usecases import (
+    CreateAgentUseCase,
+    StreamAgentResponseUseCase,
+)
 from core.usecases.auth.auth_usecases import ConfirmUserUseCase
+from core.usecases.chat.chat_usecases import AsyncCreateChatUseCase, CreateChatUseCase
 from core.usecases.user.usecases import (
     CreateUserUseCase,
     GetUserUseCase,
@@ -9,40 +17,26 @@ from core.usecases.user.usecases import (
     LoginUserUseCase,
     UpdateUserUseCase,
 )
-from infraestructure.repositories.auth.repository import AuthRepository
-from infraestructure.repositories.user.repository import UserRepository
+from infraestructure.database.config import get_db_session
+from infraestructure.repositoryes.agent.agent_repository import AgentRepository
+from infraestructure.repositoryes.auth.repository import AuthRepository
+from infraestructure.repositoryes.chat.chat_repository import ChatRepository
+from infraestructure.repositoryes.chat.postgres_chat_repository import (
+    PostgresChatRepository,
+)
+from infraestructure.repositoryes.user.repository import UserRepository
 from interface.auth.auth_interface import AuthInterface
+from interface.chat.chat_interface import AsyncChatInterface, ChatInterface
 from interface.user.user_interface import UserInterface
+from presentation.controllers.agent.agent_controller import AgentController
 from presentation.controllers.auth.auth_controller import AuthController
+from presentation.controllers.chat.chat_controller import (
+    AsyncChatController,
+    ChatController,
+)
 from presentation.controllers.user.user_controller import UserController
+from presentation.presenters.agent.agent_presenter import AgentPresenter
 from presentation.presenters.user.user_presenter import UserPresenter
-
-
-# Mock implementation for AuthInterface (você pode implementar uma versão real)
-class MockAuthInterface(AuthInterface):
-    def login(self, username: str, password: str) -> Dict[str, Any]:
-        return {"token": "mock_token", "user_id": "mock_user_id"}
-
-    def logout(self, token: str) -> bool:
-        return True
-
-    def signup(self, username: str, password: str) -> Dict[str, Any]:
-        return {"user_id": "mock_user_id", "username": username}
-
-    def reset_password(self, username: str, new_password: str) -> bool:
-        return True
-
-    def get_user_details(self, token: str) -> Dict[str, Any]:
-        return {"user_id": "mock_user_id", "username": "mock_username"}
-
-    def list_active_sessions(self) -> List[Dict[str, Any]]:
-        return [{"session_id": "mock_session", "user_id": "mock_user_id"}]
-
-    def revoke_session(self, token: str) -> bool:
-        return True
-
-    def confirm_email(self, token: str) -> bool:
-        return True
 
 
 @lru_cache()
@@ -111,4 +105,129 @@ def get_auth_controller() -> AuthController:
         login_usecase=login_usecase,
         confirm_usecase=ConfirmUserUseCase(get_user_repository(), get_auth_interface()),
         presenter=get_user_presenter(),
+    )
+
+
+@lru_cache()
+def get_chat_interface() -> ChatInterface:
+    """Factory para a interface de chat"""
+    return ChatRepository()
+
+
+@lru_cache()
+def get_async_chat_interface() -> AsyncChatInterface:
+    """Factory para a interface assíncrona de chat"""
+    return PostgresChatRepository()
+
+
+@lru_cache()
+def get_create_chat_usecase() -> CreateChatUseCase:
+    """Factory para o caso de uso de criação de chat"""
+    chat_interface = get_chat_interface()
+    return CreateChatUseCase(chat_interface, get_auth_interface())
+
+
+@lru_cache()
+def get_async_create_chat_usecase() -> AsyncCreateChatUseCase:
+    """Factory para o caso de uso assíncrono de criação de chat"""
+    chat_interface = get_async_chat_interface()
+    return AsyncCreateChatUseCase(chat_interface, get_auth_interface())
+
+
+@lru_cache()
+def get_chat_controller() -> ChatController:
+    """Factory para o controller de chat"""
+    return ChatController(create_chat_usecase=get_create_chat_usecase())
+
+
+lru_cache()
+
+
+def get_async_chat_controller() -> AsyncChatController:
+    """Factory para o controller assíncrono de chat"""
+    return AsyncChatController(create_chat_usecase=get_async_create_chat_usecase())
+
+
+# Configuração do esquema de autenticação Bearer
+security = HTTPBearer()
+
+
+def get_bearer_token(
+    credentials: HTTPAuthorizationCredentials = Depends(security),
+) -> str:
+    """
+    Extrai o token Bearer do header Authorization da requisição.
+
+    Args:
+        credentials: Credenciais de autorização HTTP
+
+    Returns:
+        str: O token de acesso
+
+    Raises:
+        HTTPException: Se o token não for fornecido ou estiver inválido
+    """
+    if not credentials:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Token de autorização não fornecido",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+
+    return credentials.credentials
+
+
+def get_optional_bearer_token(
+    credentials: Optional[HTTPAuthorizationCredentials] = Depends(
+        HTTPBearer(auto_error=False)
+    ),
+) -> Optional[str]:
+    """
+    Extrai o token Bearer do header Authorization de forma opcional.
+
+    Args:
+        credentials: Credenciais de autorização HTTP (opcional)
+
+    Returns:
+        Optional[str]: O token de acesso ou None se não fornecido
+    """
+    if credentials:
+        return credentials.credentials
+    return None
+
+
+@lru_cache()
+def get_agent_repository() -> AgentRepository:
+    """Factory para o repositório de agente"""
+    return AgentRepository()
+
+
+@lru_cache()
+def get_create_agent_usecase() -> CreateAgentUseCase:
+    """Factory para o caso de uso de criação de agente"""
+    return CreateAgentUseCase(get_auth_interface(), get_agent_repository())
+
+
+@lru_cache()
+def get_agent_stream_usecase() -> StreamAgentResponseUseCase:
+    """Factory para o caso de uso de streaming de resposta de agente"""
+    return StreamAgentResponseUseCase(
+        get_create_agent_usecase(), get_auth_interface(), get_agent_repository()
+    )
+
+
+def get_agent_controller() -> AgentController:
+    """
+    Factory para o controller de agente.
+
+    Returns:
+        AgentController: Instância do controller de agente
+    """
+
+    presenter = AgentPresenter()
+
+    return AgentController(
+        create_agent_usecase=get_create_agent_usecase(),
+        stream_agent_response_usecase=get_agent_stream_usecase(),
+        presenter=presenter,
     )

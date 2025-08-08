@@ -1,6 +1,8 @@
 from abc import ABC, abstractmethod
 from typing import Any, Dict, List, Optional
 
+from core.dtos.auth.auth_dtos import UserDetailsResponseDto
+
 
 class AuthInterface(ABC):
     @abstractmethod
@@ -55,11 +57,11 @@ class AuthInterface(ABC):
         pass
 
     @abstractmethod
-    def get_user_details(self, token: str) -> Dict[str, Any]:
+    def get_user_details(self, token: str) -> Optional[UserDetailsResponseDto]:
         """
         Retrieve details of the authenticated user using their token.
         :param token: The authentication token of the user.
-        :return: A dictionary containing user details if authenticated, otherwise None.
+        :return: A UserDetailsResponseDto containing user details if authenticated, otherwise None.
         """
 
         pass

@@ -11,6 +11,18 @@ from fastapi.exceptions import HTTPException, RequestValidationError
 from fastapi.responses import JSONResponse
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
+from core.exceptions.agent import (
+    AgentAuthenticationException,
+    AgentConnectionException,
+    AgentCreationException,
+    AgentDeletionException,
+    AgentListException,
+    AgentNotFoundException,
+    AgentPermissionException,
+    AgentStreamException,
+    AgentUpdateException,
+    AgentValidationException,
+)
 from core.exceptions.auth.auth_exceptions import (
     AuthenticationException,
     EmailNotVerifiedException,
@@ -36,6 +48,18 @@ from core.exceptions.base_exceptions import (
     NotFoundException,
     UnauthorizedException,
     ValidationException,
+)
+from core.exceptions.chat import (
+    ChatAccessDeniedException,
+    ChatConnectionException,
+    ChatCreationException,
+    ChatDeletionException,
+    ChatListException,
+    ChatMessageException,
+    ChatNotFoundException,
+    ChatParticipantException,
+    ChatUpdateException,
+    ChatValidationException,
 )
 from core.exceptions.infrastructure_exceptions import (
     CacheException,
@@ -86,12 +110,17 @@ def get_accept_language(request: Request) -> str:
 
 
 async def base_application_exception_handler(
-    request: Request, exc: BaseApplicationException
+    request: Request, exc: Exception
 ) -> JSONResponse:
     """
     Handler para todas as exceções customizadas da aplicação.
     Handler for all custom application exceptions.
     """
+    # Verifica se é uma exceção do tipo BaseApplicationException
+    if not isinstance(exc, BaseApplicationException):
+        # Se não for, redireciona para o handler genérico
+        return await generic_exception_handler(request, exc)
+
     language = get_accept_language(request)
     error_response = exc.to_dict(language=language)
 
@@ -110,13 +139,15 @@ async def base_application_exception_handler(
     return JSONResponse(status_code=exc.status_code, content=error_response)
 
 
-async def validation_error_handler(
-    request: Request, exc: RequestValidationError
-) -> JSONResponse:
+async def validation_error_handler(request: Request, exc: Exception) -> JSONResponse:
     """
     Handler para erros de validação do FastAPI/Pydantic.
     Handler for FastAPI/Pydantic validation errors.
     """
+    # Verifica se é um erro de validação
+    if not isinstance(exc, RequestValidationError):
+        return await generic_exception_handler(request, exc)
+
     language = get_accept_language(request)
 
     # Formata os erros de validação
@@ -147,13 +178,15 @@ async def validation_error_handler(
     )
 
 
-async def http_exception_handler(
-    request: Request, exc: Union[HTTPException, StarletteHTTPException]
-) -> JSONResponse:
+async def http_exception_handler(request: Request, exc: Exception) -> JSONResponse:
     """
     Handler para exceções HTTP padrão.
     Handler for standard HTTP exceptions.
     """
+    # Verifica se é uma exceção HTTP válida
+    if not isinstance(exc, (HTTPException, StarletteHTTPException)):
+        return await generic_exception_handler(request, exc)
+
     language = get_accept_language(request)
 
     # Mapeamento de mensagens por status code
@@ -277,6 +310,64 @@ def register_auth_exception_handlers(app: FastAPI) -> None:
     )
 
 
+def register_chat_exception_handlers(app: FastAPI) -> None:
+    """
+    Registra os exception handlers específicos para o módulo de chat.
+    Registers the specific exception handlers for the chat module.
+    """
+    # Handlers específicos para exceções de chat
+    app.add_exception_handler(ChatCreationException, base_application_exception_handler)
+    app.add_exception_handler(ChatNotFoundException, base_application_exception_handler)
+    app.add_exception_handler(ChatUpdateException, base_application_exception_handler)
+    app.add_exception_handler(ChatDeletionException, base_application_exception_handler)
+    app.add_exception_handler(ChatListException, base_application_exception_handler)
+    app.add_exception_handler(
+        ChatAccessDeniedException, base_application_exception_handler
+    )
+    app.add_exception_handler(ChatMessageException, base_application_exception_handler)
+    app.add_exception_handler(
+        ChatParticipantException, base_application_exception_handler
+    )
+    app.add_exception_handler(
+        ChatValidationException, base_application_exception_handler
+    )
+    app.add_exception_handler(
+        ChatConnectionException, base_application_exception_handler
+    )
+
+
+def register_agent_exception_handlers(app: FastAPI) -> None:
+    """
+    Registra os exception handlers específicos para o módulo de agent.
+    Registers the specific exception handlers for the agent module.
+    """
+    # Handlers específicos para exceções de agent
+    app.add_exception_handler(
+        AgentCreationException, base_application_exception_handler
+    )
+    app.add_exception_handler(
+        AgentNotFoundException, base_application_exception_handler
+    )
+    app.add_exception_handler(AgentUpdateException, base_application_exception_handler)
+    app.add_exception_handler(
+        AgentDeletionException, base_application_exception_handler
+    )
+    app.add_exception_handler(AgentListException, base_application_exception_handler)
+    app.add_exception_handler(
+        AgentValidationException, base_application_exception_handler
+    )
+    app.add_exception_handler(AgentStreamException, base_application_exception_handler)
+    app.add_exception_handler(
+        AgentAuthenticationException, base_application_exception_handler
+    )
+    app.add_exception_handler(
+        AgentPermissionException, base_application_exception_handler
+    )
+    app.add_exception_handler(
+        AgentConnectionException, base_application_exception_handler
+    )
+
+
 def register_user_exception_handlers(app: FastAPI) -> None:
     """
     Registra os exception handlers específicos para o módulo de usuários.
@@ -318,6 +409,8 @@ def register_exception_handlers(app: FastAPI) -> None:
     # Registrar handlers específicos para os módulos PRIMEIRO (mais específicos)
     register_user_exception_handlers(app)
     register_auth_exception_handlers(app)
+    register_chat_exception_handlers(app)
+    register_agent_exception_handlers(app)
 
     # Handlers específicos para cada tipo de exceção customizada
     app.add_exception_handler(ValidationException, base_application_exception_handler)

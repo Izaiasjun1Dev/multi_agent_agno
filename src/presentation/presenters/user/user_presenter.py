@@ -21,7 +21,7 @@ class UserPresenter(UserPresenterInterface):
             "expires_in": auth_details.get("expires_in"),
             "refresh_token": auth_details.get("refresh_token"),
         }
-        
+
     def present_email_confirmation(
         self, confirmation_status: Dict[str, Any]
     ) -> Dict[str, Any]:
@@ -29,7 +29,7 @@ class UserPresenter(UserPresenterInterface):
         return {
             "success": True,
             "status": confirmation_status.get("status", "error"),
-            "message": "email confirmed successfully"
+            "message": "email confirmed successfully",
         }
 
     def present_user_created(self, user: User) -> Dict[str, Any]:
@@ -87,7 +87,6 @@ class UserPresenter(UserPresenterInterface):
             "is_active": user.is_active,
             "slug": user.slug,
             "avatar_url": user.avatar_url,
-            "org_id": user.org_id,
             "created_at": (
                 user.created_at.isoformat()
                 if hasattr(user, "created_at") and user.created_at

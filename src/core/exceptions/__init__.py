@@ -3,6 +3,20 @@ Sistema de exceções da aplicação.
 Application exception system.
 """
 
+# Agent exceptions
+from .agent import (
+    AgentAuthenticationException,
+    AgentConnectionException,
+    AgentCreationException,
+    AgentDeletionException,
+    AgentListException,
+    AgentNotFoundException,
+    AgentPermissionException,
+    AgentStreamException,
+    AgentUpdateException,
+    AgentValidationException,
+)
+
 # Base exceptions
 from .base_exceptions import (
     BaseApplicationException,
@@ -12,6 +26,20 @@ from .base_exceptions import (
     NotFoundException,
     UnauthorizedException,
     ValidationException,
+)
+
+# Chat exceptions
+from .chat import (
+    ChatAccessDeniedException,
+    ChatConnectionException,
+    ChatCreationException,
+    ChatDeletionException,
+    ChatListException,
+    ChatMessageException,
+    ChatNotFoundException,
+    ChatParticipantException,
+    ChatUpdateException,
+    ChatValidationException,
 )
 
 # Infrastructure exceptions
@@ -48,7 +76,6 @@ from .user.exceptions import (
     UserInactiveException,
     UserNameValidationException,
     UserNotFoundException,
-    UserOrgMismatchException,
     UserPasswordMismatchException,
     UserPasswordValidationException,
     UserProfileIncompleteException,
@@ -102,6 +129,27 @@ __all__ = [
     "UserTokenExpiredException",
     "UserTokenInvalidException",
     "UserProfileIncompleteException",
-    "UserOrgMismatchException",
     "UserSlugConflictException",
+    # Chat exceptions
+    "ChatCreationException",
+    "ChatNotFoundException",
+    "ChatUpdateException",
+    "ChatDeletionException",
+    "ChatListException",
+    "ChatAccessDeniedException",
+    "ChatMessageException",
+    "ChatParticipantException",
+    "ChatValidationException",
+    "ChatConnectionException",
+    # Agent exceptions
+    "AgentCreationException",
+    "AgentNotFoundException",
+    "AgentUpdateException",
+    "AgentDeletionException",
+    "AgentListException",
+    "AgentValidationException",
+    "AgentStreamException",
+    "AgentAuthenticationException",
+    "AgentPermissionException",
+    "AgentConnectionException",
 ]

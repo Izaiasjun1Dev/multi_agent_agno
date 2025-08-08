@@ -1,0 +1,213 @@
+"""Testes para os casos de uso de agentes"""
+
+from unittest.mock import AsyncMock, Mock, patch
+
+import pytest
+
+from core.dtos.auth.auth_dtos import UserDetailsResponseDto
+from core.entities.agent import BaseAgent
+from core.exceptions.agent import (
+    AgentAuthenticationException,
+    AgentCreationException,
+    AgentStreamException,
+)
+from core.usecases.agent.agent_usecases import (
+    CreateAgentUseCase,
+    StreamAgentResponseUseCase,
+)
+
+
+class TestCreateAgentUseCase:
+    """Testes para CreateAgentUseCase"""
+
+    def setup_method(self):
+        """Setup para cada teste"""
+        self.mock_auth_repository = Mock()
+        self.mock_agent_repository = AsyncMock()
+        self.use_case = CreateAgentUseCase(
+            self.mock_auth_repository, self.mock_agent_repository
+        )
+
+    def test_validate_token_success(self):
+        """Testa validação bem-sucedida de token"""
+        # Arrange
+        token = "valid_token"
+        expected_user = UserDetailsResponseDto(
+            user_id="user123",
+            email="test@example.com",
+            first_name="Test",
+            last_name="User",
+            is_active=True,
+        )
+        self.mock_auth_repository.get_user_details.return_value = expected_user
+
+        # Act
+        result = self.use_case.validate_token(token)
+
+        # Assert
+        assert result == expected_user
+        self.mock_auth_repository.get_user_details.assert_called_once_with(token)
+
+    def test_validate_token_user_not_found(self):
+        """Testa validação com usuário não encontrado"""
+        # Arrange
+        token = "invalid_token"
+        self.mock_auth_repository.get_user_details.return_value = None
+
+        # Act & Assert
+        with pytest.raises(AgentAuthenticationException):
+            self.use_case.validate_token(token)
+
+    def test_validate_token_repository_error(self):
+        """Testa erro no repositório durante validação"""
+        # Arrange
+        token = "error_token"
+        self.mock_auth_repository.get_user_details.side_effect = Exception("DB Error")
+
+        # Act & Assert
+        with pytest.raises(AgentAuthenticationException):
+            self.use_case.validate_token(token)
+
+    @pytest.mark.asyncio
+    async def test_execute_success(self):
+        """Testa execução bem-sucedida de criação de agente"""
+        # Arrange
+        token = "valid_token"
+        agent_data = BaseAgent(
+            name="test_agent",
+            description="Test agent description",
+            instructions="Test instructions",
+            user_id="user123",
+            session_id="session123",
+        )
+
+        user = UserDetailsResponseDto(
+            user_id="user123",
+            email="test@example.com",
+            first_name="Test",
+            last_name="User",
+            is_active=True,
+        )
+
+        with patch.object(self.use_case, "validate_token", return_value=user):
+            expected_agent = Mock()
+            self.mock_agent_repository.create_basic_agent_chat.return_value = (
+                expected_agent
+            )
+
+            # Act
+            result = await self.use_case.execute(token, agent_data)
+
+            # Assert
+            assert result == expected_agent
+            self.mock_agent_repository.create_basic_agent_chat.assert_called_once()
+
+    @pytest.mark.asyncio
+    async def test_execute_authentication_error(self):
+        """Testa falha na autenticação durante execução"""
+        # Arrange
+        token = "invalid_token"
+        agent_data = BaseAgent(
+            name="test_agent",
+            description="Test agent description",
+            instructions="Test instructions",
+            user_id="user123",
+            session_id="session123",
+        )
+
+        with patch.object(
+            self.use_case, "validate_token", side_effect=AgentAuthenticationException()
+        ):
+            # Act & Assert
+            with pytest.raises(AgentAuthenticationException):
+                await self.use_case.execute(token, agent_data)
+
+    @pytest.mark.asyncio
+    async def test_execute_creation_error(self):
+        """Testa erro durante criação do agente"""
+        # Arrange
+        token = "valid_token"
+        agent_data = BaseAgent(
+            name="test_agent",
+            description="Test agent description",
+            instructions="Test instructions",
+            user_id="user123",
+            session_id="session123",
+        )
+
+        user = UserDetailsResponseDto(
+            user_id="user123",
+            email="test@example.com",
+            first_name="Test",
+            last_name="User",
+            is_active=True,
+        )
+
+        with patch.object(self.use_case, "validate_token", return_value=user):
+            self.mock_agent_repository.create_basic_agent_chat.side_effect = Exception(
+                "Creation error"
+            )
+
+            # Act & Assert
+            with pytest.raises(AgentCreationException):
+                await self.use_case.execute(token, agent_data)
+
+
+class TestStreamAgentResponseUseCase:
+    """Testes para StreamAgentResponseUseCase"""
+
+    def setup_method(self):
+        """Setup para cada teste"""
+        self.mock_agent_create_usecase = Mock()
+        self.mock_auth_repository = Mock()
+        self.mock_agent_repository = AsyncMock()
+        self.use_case = StreamAgentResponseUseCase(
+            self.mock_agent_create_usecase,
+            self.mock_auth_repository,
+            self.mock_agent_repository,
+        )
+
+    def test_validate_token_success(self):
+        """Testa validação bem-sucedida de token para stream"""
+        # Arrange
+        token = "valid_token"
+        expected_user = UserDetailsResponseDto(
+            user_id="user123",
+            email="test@example.com",
+            first_name="Test",
+            last_name="User",
+            is_active=True,
+        )
+        self.mock_auth_repository.get_user_details.return_value = expected_user
+
+        # Act
+        result = self.use_case.validate_token(token)
+
+        # Assert
+        assert result == expected_user
+        self.mock_auth_repository.get_user_details.assert_called_once_with(token)
+
+    def test_validate_token_user_not_found(self):
+        """Testa validação com usuário não encontrado para stream"""
+        # Arrange
+        token = "invalid_token"
+        self.mock_auth_repository.get_user_details.return_value = None
+
+        # Act & Assert
+        with pytest.raises(AgentAuthenticationException):
+            self.use_case.validate_token(token)
+
+    @pytest.mark.asyncio
+    async def test_execute_authentication_error(self):
+        """Testa falha na autenticação durante execução do stream"""
+        # Arrange
+        token = "invalid_token"
+        messages = [{"role": "user", "content": "test message"}]
+
+        with patch.object(
+            self.use_case, "validate_token", side_effect=AgentAuthenticationException()
+        ):
+            # Act & Assert
+            with pytest.raises(AgentAuthenticationException):
+                async for _ in self.use_case.execute(token, messages):
+                    pass

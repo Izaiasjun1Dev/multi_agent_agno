@@ -1,6 +1,7 @@
-import pytest
 import sys
 from pathlib import Path
+
+import pytest
 
 # Adiciona o diretório src ao path para importações
 project_root = Path(__file__).parent
@@ -24,17 +25,7 @@ def sample_user_data():
         "id": "user_123",
         "name": "João Silva",
         "email": "joao@example.com",
-        "created_at": "2024-01-01T00:00:00Z"
-    }
-
-
-@pytest.fixture
-def sample_org_data():
-    """Dados de exemplo para testes de organização"""
-    return {
-        "id": "org_123",
-        "name": "Empresa XYZ",
-        "created_at": "2024-01-01T00:00:00Z"
+        "created_at": "2024-01-01T00:00:00Z",
     }
 
 
@@ -45,5 +36,5 @@ def sample_chat_data():
         "id": "chat_123",
         "title": "Chat de exemplo",
         "user_id": "user_123",
-        "created_at": "2024-01-01T00:00:00Z"
+        "created_at": "2024-01-01T00:00:00Z",
     }

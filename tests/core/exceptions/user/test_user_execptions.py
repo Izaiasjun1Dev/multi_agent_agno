@@ -22,7 +22,6 @@ from core.exceptions import (  # Base exceptions; User exceptions
     UserInactiveException,
     UserNameValidationException,
     UserNotFoundException,
-    UserOrgMismatchException,
     UserPasswordMismatchException,
     UserPasswordValidationException,
     UserProfileIncompleteException,
@@ -199,12 +198,11 @@ class TestUserAlreadyExistsException:
     def test_user_already_exists_exception_with_details(self):
         """Testa exceção de usuário existente com detalhes"""
         email = "test@example.com"
-        details = {"created_at": "2024-01-01", "org_id": "org_123"}
+        details = {"created_at": "2024-01-01"}
 
         exception = UserAlreadyExistsException(email=email, details=details)
 
         assert exception.details["created_at"] == "2024-01-01"
-        assert exception.details["org_id"] == "org_123"
 
 
 class TestUserNotFoundException:
@@ -376,30 +374,6 @@ class TestUserProfileIncompleteException:
         )
 
         assert exception.details["completion_percentage"] == 80
-
-
-class TestUserOrgMismatchException:
-    """Testes para exceção de usuário não pertencer à organização"""
-
-    def test_create_org_mismatch_exception(self):
-        """Testa criação da exceção de usuário não pertencente à org"""
-        user_id = "user_123"
-        org_id = "org_456"
-
-        exception = UserOrgMismatchException(user_id=user_id, org_id=org_id)
-
-        expected_message_pt = (
-            f"Usuário '{user_id}' não pertence à organização '{org_id}'"
-        )
-        expected_message_en = (
-            f"User '{user_id}' does not belong to organization '{org_id}'"
-        )
-
-        assert exception.message_pt == expected_message_pt
-        assert exception.message_en == expected_message_en
-        assert exception.error_code == "USER_ORG_MISMATCH"
-        assert exception.details["user_id"] == user_id
-        assert exception.details["org_id"] == org_id
 
 
 class TestUserSlugConflictException:

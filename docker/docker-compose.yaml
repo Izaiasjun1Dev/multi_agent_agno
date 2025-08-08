@@ -1,0 +1,41 @@
+services:
+  postgres:
+    image: postgres:15
+    container_name: postgres
+    environment:
+      POSTGRES_USER: inner
+      POSTGRES_PASSWORD: inner
+      POSTGRES_DB: inner_chat
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./postgres/schema.sql:/docker-entrypoint-initdb.d/schema.sql
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "inner"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  inner_chat_app:
+    build:
+      context: ..
+      dockerfile: Dockerfile
+    container_name: inner_chat_app
+    env_file:
+      - ../.env
+    ports:
+      - "8000:8000"
+      - "7000:7000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/v1/health/"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 40s
+
+volumes:
+  pgdata:

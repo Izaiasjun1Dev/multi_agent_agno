@@ -25,7 +25,7 @@ class CreateUserUseCase:
     def execute(self, user_data: CreateRequestUserDto) -> User:
         try:
             # Criar usuário no serviço de autenticação primeiro
-            self.auth_interface.signup(
+            user = self.auth_interface.signup(
                 user_data.email,
                 user_data.password,
                 user_data.first_name,
@@ -36,6 +36,7 @@ class CreateUserUseCase:
             user_dict = user_data.model_dump()
             user = User(
                 **user_dict,
+                userId=user["user_sub"],
                 slug=generate_slug(
                     user_data.first_name if user_data.first_name else user_data.email
                 ),

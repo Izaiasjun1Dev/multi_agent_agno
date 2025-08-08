@@ -27,6 +27,30 @@ client = TestClient(app)
 class TestExceptionHandlers:
     """Testes para os exception handlers"""
 
+    def setup_method(self):
+        """Setup executado antes de cada teste"""
+        # Limpar todos os caches das dependências
+        from presentation.dependencies import (
+            get_create_user_usecase,
+            get_get_user_usecase,
+            get_update_user_usecase,
+            get_user_controller,
+            get_user_presenter,
+            get_user_repository,
+        )
+
+        # Limpar caches
+        for func in [
+            get_create_user_usecase,
+            get_get_user_usecase,
+            get_update_user_usecase,
+            get_user_controller,
+            get_user_presenter,
+            get_user_repository,
+        ]:
+            if hasattr(func, "cache_clear"):
+                func.cache_clear()
+
     def test_validation_exception_handler(self):
         """Testa o handler para ValidationException"""
         with patch(
@@ -76,9 +100,14 @@ class TestExceptionHandlers:
 
     def test_conflict_exception_handler(self):
         """Testa o handler para ConflictException"""
-        with patch("presentation.dependencies.get_user_controller") as mock_controller:
-            mock_controller.return_value.create_user.side_effect = (
-                UserAlreadyExistsException(email="test@example.com")
+        # Limpar cache do lru_cache antes do teste
+        from presentation.dependencies import get_create_user_usecase
+
+        get_create_user_usecase.cache_clear()
+
+        with patch("presentation.dependencies.get_create_user_usecase") as mock_usecase:
+            mock_usecase.return_value.execute.side_effect = UserAlreadyExistsException(
+                email="test@example.com"
             )
 
             response = client.post(

@@ -306,27 +306,6 @@ class UserProfileIncompleteException(UserBusinessRuleException):
         )
 
 
-class UserOrgMismatchException(UserBusinessRuleException):
-    """
-    Exceção para usuário não pertencer à organização.
-    Exception for user not belonging to organization.
-    """
-
-    def __init__(
-        self, user_id: str, org_id: str, details: Optional[Dict[str, Any]] = None
-    ):
-        org_details = details or {}
-        org_details.update({"user_id": user_id, "org_id": org_id})
-
-        super().__init__(
-            message_pt=f"Usuário '{user_id}' não pertence à organização '{org_id}'",
-            message_en=f"User '{user_id}' does not belong to organization '{org_id}'",
-            rule="user_must_belong_to_org",
-            details=org_details,
-            error_code="USER_ORG_MISMATCH",
-        )
-
-
 class UserSlugConflictException(ConflictException):
     """
     Exceção para conflito de slug de usuário.

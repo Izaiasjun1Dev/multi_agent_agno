@@ -3,7 +3,6 @@ from datetime import datetime
 import pytest
 
 from core.entities.chat import Chat
-from core.entities.org import Org
 from core.entities.user import User
 
 
@@ -15,7 +14,6 @@ class TestUser:
         user = User(
             userId="user_123",
             email="test@example.com",
-            org="org_123",
             isActive=True,
             slug="test-user",
             avatarUrl=None,
@@ -23,7 +21,6 @@ class TestUser:
 
         assert user.user_id == "user_123"
         assert user.email == "test@example.com"
-        assert user.org_id == "org_123"
         assert user.is_active is True
         assert user.slug == "test-user"
         assert user.avatar_url is None
@@ -37,7 +34,6 @@ class TestUser:
             email="test@example.com",
             firstName="Test",
             lastName="User",
-            org="org_123",
             isActive=True,
             slug="test-user",
             avatarUrl="https://example.com/avatar.jpg",
@@ -53,7 +49,6 @@ class TestUser:
         user = User(
             userId="user_123",
             email="test@example.com",
-            org="org_123",
             isActive=True,
             slug="test-user",
             avatarUrl=None,
@@ -69,7 +64,6 @@ class TestUser:
             User(
                 userId="user_123",
                 email="invalid-email",
-                org="org_123",
                 isActive=True,
                 slug="test-user",
                 avatarUrl=None,

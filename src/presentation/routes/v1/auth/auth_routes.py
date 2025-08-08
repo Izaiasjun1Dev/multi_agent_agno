@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Body, Depends, status
-from core.dtos.auth.auth_dtos import LoginDto
+
+from core.dtos.auth.auth_dtos import ConfirmEmailDto, LoginDto
 from presentation.controllers.auth.auth_controller import AuthController
 from presentation.dependencies import get_auth_controller
 
@@ -35,6 +36,7 @@ def login(
 
     return auth_controller.login(credentials.email, credentials.password)
 
+
 @router.post(
     "/confirm-email",
     status_code=status.HTTP_200_OK,
@@ -46,11 +48,14 @@ def login(
     },
 )
 def confirm_email(
-    email: str = Body(..., description="User email"),
-    token: str = Body(..., description="Email confirmation token"),
+    confirmation_data: ConfirmEmailDto = Body(
+        ..., description="Email confirmation data"
+    ),
     auth_controller: AuthController = Depends(get_auth_controller),
 ):
     """
     Confirm user email
     """
-    return auth_controller.confirm_email(email, token)
+    return auth_controller.confirm_email(
+        confirmation_data.email, confirmation_data.confirmation_token
+    )

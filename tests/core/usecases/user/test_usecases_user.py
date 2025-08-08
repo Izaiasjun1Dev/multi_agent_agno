@@ -10,6 +10,7 @@ from core.usecases.user.usecases import (
     DeleteUserUseCase,
     GetUserUseCase,
     ListUsersUseCase,
+    LoginUserUseCase,
     UpdateUserUseCase,
 )
 from interface.auth.auth_interface import AuthInterface
@@ -30,7 +31,6 @@ class TestCreateUserUseCase:
             lastName="User",
             slug="test-user",
             isActive=True,
-            org=None,
             chats=None,
             avatarUrl=None,
         )
@@ -38,7 +38,13 @@ class TestCreateUserUseCase:
 
     @pytest.fixture
     def auth_interface_mock(self):
-        return Mock(spec=AuthInterface)
+        mock = Mock(spec=AuthInterface)
+        # Configurar o mock para retornar dados no formato esperado pelo UseCase
+        mock.signup.return_value = {
+            "user_sub": "auth_user_123",
+            "email": "test@example.com",
+        }
+        return mock
 
     @pytest.fixture
     def create_user_use_case(self, user_interface_mock, auth_interface_mock):
@@ -120,6 +126,81 @@ class TestCreateUserUseCase:
         # Verificar detalhes da exceção
         assert "Erro inesperado ao criar usuário" in str(exc_info.value)
 
+    def test_execute_handles_user_already_exists_exception(
+        self,
+        create_user_use_case,
+        create_user_dto,
+        user_interface_mock,
+        auth_interface_mock,
+    ):
+        """Testa o tratamento da exceção de usuário já existente"""
+        from core.exceptions.user.exceptions import UserAlreadyExistsException
+
+        # Arrange - Auth será bem-sucedido, mas criar usuário falhará
+        user_interface_mock.create_user.side_effect = UserAlreadyExistsException(
+            email=create_user_dto.email
+        )
+
+        # Act & Assert
+        with pytest.raises(UserAlreadyExistsException) as exc_info:
+            create_user_use_case.execute(create_user_dto)
+
+        # Verificar se tentou criar no auth primeiro
+        auth_interface_mock.signup.assert_called_once()
+        # Verificar se tentou criar usuário no banco
+        user_interface_mock.create_user.assert_called_once()
+        # Verificar que a exceção foi re-lançada corretamente
+        assert exc_info.value.details["conflicting_value"] == create_user_dto.email
+
+    def test_execute_handles_authentication_exception(
+        self,
+        create_user_use_case,
+        create_user_dto,
+        user_interface_mock,
+        auth_interface_mock,
+    ):
+        """Testa o tratamento da exceção de autenticação"""
+        from core.exceptions.auth.auth_exceptions import AuthenticationException
+        from core.exceptions.user.exceptions import UserValidationException
+
+        # Arrange - Auth falhará
+        auth_interface_mock.signup.side_effect = AuthenticationException(
+            message_pt="Erro de auth", message_en="Auth error", error_code="AUTH_ERROR"
+        )
+
+        # Act & Assert
+        with pytest.raises(UserValidationException) as exc_info:
+            create_user_use_case.execute(create_user_dto)
+
+        # Verificar se tentou auth mas não criou usuário
+        auth_interface_mock.signup.assert_called_once()
+        user_interface_mock.create_user.assert_not_called()
+        # Verificar conversão da exceção
+        assert "Erro na criação da conta de autenticação" in exc_info.value.message_pt
+
+    def test_execute_handles_user_creation_failure(
+        self,
+        create_user_use_case,
+        create_user_dto,
+        user_interface_mock,
+        auth_interface_mock,
+    ):
+        """Testa o tratamento quando a criação do usuário no banco falha"""
+        from core.exceptions import InfrastructureException
+
+        # Arrange - Auth será bem-sucedido, mas criar usuário retornará None
+        user_interface_mock.create_user.return_value = None
+
+        # Act & Assert
+        with pytest.raises(InfrastructureException) as exc_info:
+            create_user_use_case.execute(create_user_dto)
+
+        # Verificar tentativa de cleanup
+        user_interface_mock.delete_user.assert_called_once()
+        # Verificar detalhes da exceção
+        assert "Erro ao criar usuário no banco de dados" in exc_info.value.message_pt
+        assert exc_info.value.error_code == "USER_CREATE_ERROR"
+
 
 class TestGetUserUseCase:
     """Testes para o caso de uso de busca de usuário"""
@@ -139,7 +220,6 @@ class TestGetUserUseCase:
             email="test@example.com",
             firstName="Test",
             lastName="User",
-            org="org_123",
             isActive=True,
             slug="test-user",
             chats=None,
@@ -172,6 +252,139 @@ class TestGetUserUseCase:
         assert result is None
         user_interface_mock.get_user.assert_called_once_with("nonexistent_user")
 
+    def test_execute_handles_user_not_found_exception(
+        self, get_user_use_case, user_interface_mock
+    ):
+        """Testa o tratamento da exceção UserNotFoundException"""
+        from core.exceptions.user.exceptions import UserNotFoundException
+
+        # Arrange
+        user_interface_mock.get_user.side_effect = UserNotFoundException(
+            identifier="user_123", field="id"
+        )
+
+        # Act & Assert
+        with pytest.raises(UserNotFoundException) as exc_info:
+            get_user_use_case.execute("user_123")
+
+        # Verificar que a exceção foi re-lançada
+        assert exc_info.value.details["identifier"] == "user_123"
+        assert exc_info.value.details["search_field"] == "id"
+
+    def test_execute_converts_generic_exception_to_user_not_found(
+        self, get_user_use_case, user_interface_mock
+    ):
+        """Testa a conversão de exceções genéricas para UserNotFoundException"""
+        from core.exceptions.user.exceptions import UserNotFoundException
+
+        # Arrange
+        user_interface_mock.get_user.side_effect = Exception("Generic error")
+
+        # Act & Assert
+        with pytest.raises(UserNotFoundException) as exc_info:
+            get_user_use_case.execute("user_123")
+
+        # Verificar conversão da exceção
+        assert exc_info.value.details["identifier"] == "user_123"
+        assert exc_info.value.details["search_field"] == "id"
+        assert "Generic error" in str(exc_info.value.details["original_error"])
+
+
+class TestLoginUserUseCase:
+    """Testes para o caso de uso de login de usuário"""
+
+    @pytest.fixture
+    def auth_interface_mock(self):
+        mock = Mock(spec=AuthInterface)
+        mock.login.return_value = {
+            "access_token": "mock_access_token",
+            "token_type": "Bearer",
+            "expires_in": 3600,
+            "refresh_token": "mock_refresh_token",
+        }
+        return mock
+
+    @pytest.fixture
+    def login_user_use_case(self, auth_interface_mock):
+        return LoginUserUseCase(auth_interface_mock)
+
+    def test_execute_login_successfully(self, login_user_use_case, auth_interface_mock):
+        """Testa login bem-sucedido"""
+        # Act
+        result = login_user_use_case.execute("test@example.com", "password123")
+
+        # Assert
+        assert result["success"] is True
+        assert result["access_token"] == "mock_access_token"
+        assert result["token_type"] == "Bearer"
+        assert result["expires_in"] == 3600
+        assert result["refresh_token"] == "mock_refresh_token"
+        auth_interface_mock.login.assert_called_once_with(
+            "test@example.com", "password123"
+        )
+
+    def test_execute_handles_invalid_credentials_exception(
+        self, login_user_use_case, auth_interface_mock
+    ):
+        """Testa tratamento de credenciais inválidas"""
+        from core.exceptions.auth.auth_exceptions import InvalidCredentialsException
+
+        # Arrange
+        auth_interface_mock.login.side_effect = InvalidCredentialsException(
+            details={"email": "test@example.com"}
+        )
+
+        # Act & Assert
+        with pytest.raises(InvalidCredentialsException):
+            login_user_use_case.execute("test@example.com", "wrong_password")
+
+    def test_execute_handles_authentication_exception(
+        self, login_user_use_case, auth_interface_mock
+    ):
+        """Testa tratamento de exceções de autenticação"""
+        from core.exceptions.auth.auth_exceptions import AuthenticationException
+
+        # Arrange
+        auth_interface_mock.login.side_effect = AuthenticationException(
+            message_pt="Erro de auth", message_en="Auth error", error_code="AUTH_ERROR"
+        )
+
+        # Act & Assert
+        with pytest.raises(AuthenticationException):
+            login_user_use_case.execute("test@example.com", "password123")
+
+    def test_execute_handles_no_auth_data_returned(
+        self, login_user_use_case, auth_interface_mock
+    ):
+        """Testa quando auth_interface.login retorna None ou dados vazios"""
+        from core.exceptions.auth.auth_exceptions import InvalidCredentialsException
+
+        # Arrange
+        auth_interface_mock.login.return_value = None
+
+        # Act & Assert
+        with pytest.raises(InvalidCredentialsException) as exc_info:
+            login_user_use_case.execute("test@example.com", "password123")
+
+        assert exc_info.value.details["email"] == "test@example.com"
+
+    def test_execute_converts_generic_exception_to_authentication_exception(
+        self, login_user_use_case, auth_interface_mock
+    ):
+        """Testa conversão de exceções genéricas"""
+        from core.exceptions.auth.auth_exceptions import AuthenticationException
+
+        # Arrange
+        auth_interface_mock.login.side_effect = Exception("Generic error")
+
+        # Act & Assert
+        with pytest.raises(AuthenticationException) as exc_info:
+            login_user_use_case.execute("test@example.com", "password123")
+
+        assert "Erro inesperado durante o login" in exc_info.value.message_pt
+        assert exc_info.value.error_code == "LOGIN_UNEXPECTED_ERROR"
+        assert "Generic error" in str(exc_info.value.details["original_error"])
+
 
 class TestListUsersUseCase:
     """Testes para o caso de uso de listagem de usuários"""
@@ -192,7 +405,6 @@ class TestListUsersUseCase:
                 email="user1@example.com",
                 firstName="User",
                 lastName="One",
-                org="org_123",
                 isActive=True,
                 slug="user-1",
                 chats=None,
@@ -203,7 +415,6 @@ class TestListUsersUseCase:
                 email="user2@example.com",
                 firstName="User",
                 lastName="Two",
-                org="org_123",
                 isActive=True,
                 slug="user-2",
                 chats=None,
@@ -252,7 +463,6 @@ class TestUpdateUserUseCase:
             email="test@example.com",
             firstName="Test",
             lastName="User",
-            org="org_123",
             isActive=True,
             slug="test-user",
             chats=None,

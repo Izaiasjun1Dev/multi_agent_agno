@@ -3,6 +3,34 @@ from typing import Optional, List
 from datetime import datetime
 
 
+class ChatMessage(BaseModel):
+    """Modelo de mensagem de chat"""
+    message_id: str = Field(
+        ...,
+        title="Message ID",
+        description="Unique identifier for the message",
+        alias="messageId"
+    )
+    user_id: str = Field(
+        ...,
+        title="User ID",
+        description="Identifier of the user who sent the message",
+        alias="userId"
+    )
+    content: str = Field(
+        ...,
+        title="Content",
+        description="Content of the message",
+        alias="content"
+    )
+    timestamp: datetime = Field(
+        default_factory=lambda: datetime.now(),
+        title="Timestamp",
+        description="Timestamp when the message was sent",
+        alias="timestamp"
+    )
+
+
 class Chat(BaseModel):
     chat_id: str = Field(
         ...,
@@ -16,7 +44,7 @@ class Chat(BaseModel):
         description="Identifier of the user associated with the chat",
         alias="userId"
     )
-    messages: List[str] = Field(
+    messages: Optional[List[ChatMessage]] = Field(
         default_factory=list,
         title="Messages",
         description="List of messages in the chat",
