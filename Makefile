@@ -124,8 +124,8 @@ run-environment:
 	@cd agent-ui && npm run dev
 	@echo "📍 URL: http://localhost:3000"
 
-.PHONY: run-playground
-run-playground:
+.PHONY: playground
+playground:
 	@echo "🚀 Iniciando Playground..."
 	@clear && PYTHONPATH=$(PYTHONPATH) $(PYTHON) -m presentation.playground &
 	@cd agent-ui && npm run dev
