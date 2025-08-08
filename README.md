@@ -392,6 +392,21 @@ class GuardrailAgent(BaseAgent):
 - **Performance Metrics:** Response times and token usage
 - **Error Tracking:** Comprehensive error logging and alerting
 
+### Monitoring Dashboard Example
+
+O sistema fornece visibilidade completa das operações de agentes em tempo real:
+
+![LangSmith Monitoring Dashboard](docs/observabilidade.png)
+
+**Dashboard Features:**
+
+- ✅ **Agent Execution Tracking:** Visualização em tempo real de todas as execuções
+- ✅ **Performance Metrics:** Tempos de resposta, tokens utilizados, custos
+- ✅ **Error Analysis:** Identificação e análise de falhas nos agentes
+- ✅ **Team Coordination:** Monitoramento da coordenação entre agentes
+- ✅ **Tool Usage:** Tracking das ferramentas utilizadas (DALL-E, APIs externas)
+- ✅ **Success/Failure Rates:** Métricas de confiabilidade por agente
+
 ### Debug Mode
 
 ```bash
@@ -399,6 +414,16 @@ class GuardrailAgent(BaseAgent):
 export DEBUG_MODE=true
 make run
 ```
+
+### Key Metrics Tracked
+
+| Métrica                  | Descrição                          | Exemplo                                       |
+| ------------------------ | ---------------------------------- | --------------------------------------------- |
+| **Agent Response Time**  | Tempo de resposta por agente       | BasicAgent: ~500ms, ComplexityAgent: ~2s      |
+| **Token Usage**          | Consumo de tokens por requisição   | GPT-4o-mini: ~150 tokens, Claude: ~300 tokens |
+| **Success Rate**         | Taxa de sucesso por tipo de agente | TeamAgent: 99.2%, ImageAgent: 97.8%           |
+| **Error Classification** | Categorização de erros             | API Timeout: 2%, Config Error: 0.5%           |
+| **Tool Utilization**     | Uso de ferramentas especializadas  | DALL-E: 15%, WebSearch: 30%                   |
 
 ### Integration Ready
 
