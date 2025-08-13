@@ -81,7 +81,7 @@ run-dev:
 	@echo "📍 URL: http://localhost:8000"
 	@echo "📚 Documentação: http://localhost:8000/docs"
 	@echo ""
-	PYTHONPATH=$(PYTHONPATH) $(PYTHON) src/application/main.py
+	PYTHONPATH=$(PYTHONPATH) $(PYTHON) src/application
 
 run-prod:
 	@echo "🚀 Iniciando Inner API em modo produção..."
